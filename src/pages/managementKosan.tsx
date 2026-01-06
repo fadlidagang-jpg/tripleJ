@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Plus, Edit2, Trash2, Home, Users, DollarSign, AlertCircle } from 'lucide-react';
 
-const Modal = ({ isOpen, onClose, children, title }) => {
+const Modal = ({ isOpen, onClose, children, title }: any) => {
   if (!isOpen) return null;
-  
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-md w-full p-6">
@@ -27,7 +27,7 @@ const KosanManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     roomNumber: '',
     building: '',
@@ -43,19 +43,19 @@ const KosanManagement = () => {
   });
 
   // Fungsi untuk menghitung durasi sewa
-  const calculateDuration = (checkInDate) => {
+  const calculateDuration = (checkInDate: string) => {
     if (!checkInDate) return '-';
-    
+
     const startDate = new Date(checkInDate);
     const today = new Date();
-    
-    const diffTime = Math.abs(today - startDate);
+
+    const diffTime = Math.abs(today.getTime() - startDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     const years = Math.floor(diffDays / 365);
     const months = Math.floor((diffDays % 365) / 30);
     const days = Math.floor((diffDays % 365) % 30);
-    
+
     if (years > 0) {
       return `${years} tahun ${months} bulan`;
     } else if (months > 0) {
@@ -66,13 +66,13 @@ const KosanManagement = () => {
   };
 
   // Fungsi untuk menghitung sisa waktu sewa
-  const calculateRemainingTime = (checkInDate, rentDuration, rentDurationUnit) => {
+  const calculateRemainingTime = (checkInDate: string, rentDuration: string, rentDurationUnit: string) => {
     if (!checkInDate || !rentDuration) return null;
-    
+
     const startDate = new Date(checkInDate);
     const today = new Date();
     const endDate = new Date(startDate);
-    
+
     // Hitung tanggal berakhir sewa
     if (rentDurationUnit === 'hari') {
       endDate.setDate(endDate.getDate() + parseInt(rentDuration));
@@ -81,10 +81,10 @@ const KosanManagement = () => {
     } else if (rentDurationUnit === 'tahun') {
       endDate.setFullYear(endDate.getFullYear() + parseInt(rentDuration));
     }
-    
-    const diffTime = endDate - today;
+
+    const diffTime = endDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) {
       return { text: 'Sudah berakhir', expired: true, days: Math.abs(diffDays) };
     } else if (diffDays === 0) {
@@ -131,19 +131,19 @@ const KosanManagement = () => {
 
   useEffect(() => {
     let filtered = rooms;
-    
+
     if (searchTerm) {
-      filtered = filtered.filter(room => 
+      filtered = filtered.filter(room =>
         room.roomNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         room.building.toLowerCase().includes(searchTerm.toLowerCase()) ||
         room.tenantName.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-    
+
     if (filterStatus !== 'all') {
       filtered = filtered.filter(room => room.status === filterStatus);
     }
-    
+
     setFilteredRooms(filtered);
   }, [searchTerm, filterStatus, rooms]);
 
@@ -156,19 +156,20 @@ const KosanManagement = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (editingRoom) {
-      setRooms(rooms.map(room => 
+      setRooms(rooms.map(room =>
         room.id === editingRoom.id ? { ...formData, id: room.id } : room
       ));
     } else {
       const newRoom = {
         ...formData,
+        // eslint-disable-next-line react-hooks/purity
         id: Date.now()
       };
       setRooms([...rooms, newRoom]);
     }
-    
+
     closeModal();
   };
 
@@ -229,7 +230,7 @@ const KosanManagement = () => {
               <p className="text-yellow-800 text-sm">
                 <strong>Belum terhubung ke Google Sheets.</strong> Saat ini data disimpan di browser Anda.
               </p>
-              <button 
+              <button
                 onClick={syncToGoogleSheets}
                 className="mt-2 text-sm bg-yellow-600 text-white px-4 py-1 rounded hover:bg-yellow-700"
               >
@@ -249,7 +250,7 @@ const KosanManagement = () => {
               <Home className="text-blue-600" size={32} />
             </div>
           </div>
-          
+
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center justify-between">
               <div>
@@ -259,7 +260,7 @@ const KosanManagement = () => {
               <Users className="text-green-600" size={32} />
             </div>
           </div>
-          
+
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center justify-between">
               <div>
@@ -269,7 +270,7 @@ const KosanManagement = () => {
               <Home className="text-orange-600" size={32} />
             </div>
           </div>
-          
+
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center justify-between">
               <div>
@@ -293,7 +294,7 @@ const KosanManagement = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            
+
             <select
               className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={filterStatus}
@@ -303,7 +304,7 @@ const KosanManagement = () => {
               <option value="kosong">Kosong</option>
               <option value="terisi">Terisi</option>
             </select>
-            
+
             <button
               onClick={handleAdd}
               className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 whitespace-nowrap"
@@ -334,68 +335,66 @@ const KosanManagement = () => {
               <tbody className="divide-y divide-gray-200">
                 {filteredRooms.map((room) => {
                   const remaining = room.status === 'terisi' ? calculateRemainingTime(room.checkInDate, room.rentDuration, room.rentDurationUnit) : null;
-                  
+
                   return (
-                  <tr key={room.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{room.roomNumber}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-600">{room.building}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-600">{room.floor}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        room.status === 'terisi' 
-                          ? 'bg-green-100 text-green-800' 
+                    <tr key={room.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{room.roomNumber}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-600">{room.building}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-600">{room.floor}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${room.status === 'terisi'
+                          ? 'bg-green-100 text-green-800'
                           : 'bg-orange-100 text-orange-800'
-                      }`}>
-                        {room.status === 'terisi' ? 'Terisi' : 'Kosong'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                      {room.tenantName || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                      {room.status === 'terisi' ? calculateDuration(room.checkInDate) : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                      {room.rentDuration && room.status === 'terisi' ? `${room.rentDuration} ${room.rentDurationUnit}` : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {remaining ? (
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          remaining.expired 
-                            ? 'bg-red-100 text-red-800' 
-                            : remaining.warning 
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          {remaining.text}
+                          }`}>
+                          {room.status === 'terisi' ? 'Terisi' : 'Kosong'}
                         </span>
-                      ) : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                      Rp {parseInt(room.rentPrice || 0).toLocaleString('id-ID')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleEdit(room)}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          <Edit2 size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(room.id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-600">
+                        {room.tenantName || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-600">
+                        {room.status === 'terisi' ? calculateDuration(room.checkInDate) : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-600">
+                        {room.rentDuration && room.status === 'terisi' ? `${room.rentDuration} ${room.rentDurationUnit}` : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {remaining ? (
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${remaining.expired
+                            ? 'bg-red-100 text-red-800'
+                            : remaining.warning
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-blue-100 text-blue-800'
+                            }`}>
+                            {remaining.text}
+                          </span>
+                        ) : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-600">
+                        Rp {parseInt(room.rentPrice || 0).toLocaleString('id-ID')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleEdit(room)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(room.id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>
             </table>
-            
+
             {filteredRooms.length === 0 && (
               <div className="text-center py-12 text-gray-500">
                 Tidak ada data kamar yang ditemukan
@@ -418,10 +417,10 @@ const KosanManagement = () => {
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={formData.roomNumber}
-              onChange={(e) => setFormData({...formData, roomNumber: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, roomNumber: e.target.value })}
             />
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Gedung *</label>
@@ -430,10 +429,10 @@ const KosanManagement = () => {
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={formData.building}
-                onChange={(e) => setFormData({...formData, building: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, building: e.target.value })}
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Lantai *</label>
               <input
@@ -441,24 +440,24 @@ const KosanManagement = () => {
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={formData.floor}
-                onChange={(e) => setFormData({...formData, floor: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
               />
             </div>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Status *</label>
             <select
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={formData.status}
-              onChange={(e) => setFormData({...formData, status: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
             >
               <option value="kosong">Kosong</option>
               <option value="terisi">Terisi</option>
             </select>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Harga Sewa (Rp) *</label>
             <input
@@ -466,10 +465,10 @@ const KosanManagement = () => {
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={formData.rentPrice}
-              onChange={(e) => setFormData({...formData, rentPrice: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, rentPrice: e.target.value })}
             />
           </div>
-          
+
           {formData.status === 'terisi' && (
             <>
               <div>
@@ -478,30 +477,30 @@ const KosanManagement = () => {
                   type="text"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={formData.tenantName}
-                  onChange={(e) => setFormData({...formData, tenantName: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, tenantName: e.target.value })}
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">No. Telepon</label>
                 <input
                   type="tel"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={formData.tenantPhone}
-                  onChange={(e) => setFormData({...formData, tenantPhone: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, tenantPhone: e.target.value })}
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Masuk</label>
                 <input
                   type="date"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={formData.checkInDate}
-                  onChange={(e) => setFormData({...formData, checkInDate: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, checkInDate: e.target.value })}
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Durasi Kontrak Sewa</label>
                 <div className="grid grid-cols-2 gap-2">
@@ -511,12 +510,12 @@ const KosanManagement = () => {
                     placeholder="Jumlah"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={formData.rentDuration}
-                    onChange={(e) => setFormData({...formData, rentDuration: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, rentDuration: e.target.value })}
                   />
                   <select
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={formData.rentDurationUnit}
-                    onChange={(e) => setFormData({...formData, rentDurationUnit: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, rentDurationUnit: e.target.value })}
                   >
                     <option value="hari">Hari</option>
                     <option value="bulan">Bulan</option>
@@ -526,18 +525,18 @@ const KosanManagement = () => {
               </div>
             </>
           )}
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
             <textarea
               rows="3"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={formData.notes}
-              onChange={(e) => setFormData({...formData, notes: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             />
           </div>
         </div>
-        
+
         <div className="flex gap-3 mt-6">
           <button
             onClick={closeModal}
