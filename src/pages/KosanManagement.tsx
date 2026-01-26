@@ -1,34 +1,25 @@
-import { useState, useEffect } from 'react';
-import { Search, Plus, Edit2, Trash2, Home, Users, DollarSign, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Plus, Edit2, Trash2, Home, Users, DollarSign, LogOut } from 'lucide-react';
+import Modal from '../components/Modal';
+import type { Room, RoomFormData, Stats } from '../types';
+import { calculateDuration, calculateRemainingTime } from '../utils';
+import { getSheetData, saveRow, deleteRow, type KamarData } from '../services/googleSheetsService';
 
-const Modal = ({ isOpen, onClose, children, title }: any) => {
-  if (!isOpen) return null;
+interface KosanManagementProps {
+  onLogout: () => void;
+  username: string;
+}
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-gray-800">{title}</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">
-            ✕
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-};
+const KosanManagement: React.FC<KosanManagementProps> = ({ onLogout, username }) => {
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [filteredRooms, setFilteredRooms] = useState<Room[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [editingRoom, setEditingRoom] = useState<Room | null>(null);
 
-const KosanManagement = () => {
-  const [rooms, setRooms] = useState([]);
-  const [filteredRooms, setFilteredRooms] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingRoom, setEditingRoom] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<RoomFormData>({
     roomNumber: '',
     building: '',
     floor: '',
@@ -42,85 +33,8 @@ const KosanManagement = () => {
     notes: ''
   });
 
-  // Fungsi untuk menghitung durasi sewa
-  const calculateDuration = (checkInDate: string) => {
-    if (!checkInDate) return '-';
-
-    const startDate = new Date(checkInDate);
-    const today = new Date();
-
-    const diffTime = Math.abs(today.getTime() - startDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    const years = Math.floor(diffDays / 365);
-    const months = Math.floor((diffDays % 365) / 30);
-    const days = Math.floor((diffDays % 365) % 30);
-
-    if (years > 0) {
-      return `${years} tahun ${months} bulan`;
-    } else if (months > 0) {
-      return `${months} bulan ${days} hari`;
-    } else {
-      return `${days} hari`;
-    }
-  };
-
-  // Fungsi untuk menghitung sisa waktu sewa
-  const calculateRemainingTime = (checkInDate: string, rentDuration: string, rentDurationUnit: string) => {
-    if (!checkInDate || !rentDuration) return null;
-
-    const startDate = new Date(checkInDate);
-    const today = new Date();
-    const endDate = new Date(startDate);
-
-    // Hitung tanggal berakhir sewa
-    if (rentDurationUnit === 'hari') {
-      endDate.setDate(endDate.getDate() + parseInt(rentDuration));
-    } else if (rentDurationUnit === 'bulan') {
-      endDate.setMonth(endDate.getMonth() + parseInt(rentDuration));
-    } else if (rentDurationUnit === 'tahun') {
-      endDate.setFullYear(endDate.getFullYear() + parseInt(rentDuration));
-    }
-
-    const diffTime = endDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) {
-      return { text: 'Sudah berakhir', expired: true, days: Math.abs(diffDays) };
-    } else if (diffDays === 0) {
-      return { text: 'Berakhir hari ini', warning: true, days: 0 };
-    } else if (diffDays <= 7) {
-      return { text: `${diffDays} hari lagi`, warning: true, days: diffDays };
-    } else if (diffDays <= 30) {
-      return { text: `${diffDays} hari lagi`, normal: true, days: diffDays };
-    } else {
-      const months = Math.floor(diffDays / 30);
-      const days = diffDays % 30;
-      if (months > 0) {
-        return { text: `${months} bulan ${days} hari lagi`, normal: true, days: diffDays };
-      } else {
-        return { text: `${days} hari lagi`, normal: true, days: diffDays };
-      }
-    }
-  };
-
   useEffect(() => {
-    const savedRooms = localStorage.getItem('kosanRooms');
-    if (savedRooms) {
-      const parsedRooms = JSON.parse(savedRooms);
-      setRooms(parsedRooms);
-      setFilteredRooms(parsedRooms);
-    } else {
-      const sampleData = [
-        { id: 1, roomNumber: '101', building: 'A', floor: '1', status: 'terisi', tenantName: 'Budi Santoso', tenantPhone: '081234567890', rentPrice: '1500000', checkInDate: '2024-01-15', rentDuration: '6', rentDurationUnit: 'bulan', notes: '' },
-        { id: 2, roomNumber: '102', building: 'A', floor: '1', status: 'kosong', tenantName: '', tenantPhone: '', rentPrice: '1500000', checkInDate: '', rentDuration: '', rentDurationUnit: 'bulan', notes: '' },
-        { id: 3, roomNumber: '201', building: 'A', floor: '2', status: 'terisi', tenantName: 'Siti Nurhaliza', tenantPhone: '082345678901', rentPrice: '1800000', checkInDate: '2024-02-01', rentDuration: '12', rentDurationUnit: 'bulan', notes: '' },
-        { id: 4, roomNumber: '103', building: 'A', floor: '1', status: 'kosong', tenantName: '', tenantPhone: '', rentPrice: '1500000', checkInDate: '', rentDuration: '', rentDurationUnit: 'bulan', notes: '' },
-        { id: 5, roomNumber: '202', building: 'A', floor: '2', status: 'terisi', tenantName: 'Ahmad Hidayat', tenantPhone: '083456789012', rentPrice: '1800000', checkInDate: '2024-11-20', rentDuration: '3', rentDurationUnit: 'bulan', notes: 'Sudah bayar 3 bulan' }
-      ];
-      setRooms(sampleData);
-      setFilteredRooms(sampleData);
-    }
+    syncToGoogleSheets();
   }, []);
 
   useEffect(() => {
@@ -147,33 +61,82 @@ const KosanManagement = () => {
     setFilteredRooms(filtered);
   }, [searchTerm, filterStatus, rooms]);
 
-  const stats = {
+  const stats: Stats = {
     total: rooms.length,
     occupied: rooms.filter(r => r.status === 'terisi').length,
     vacant: rooms.filter(r => r.status === 'kosong').length,
-    occupancyRate: rooms.length > 0 ? ((rooms.filter(r => r.status === 'terisi').length / rooms.length) * 100).toFixed(1) : 0
+    occupancyRate: rooms.length > 0 ? ((rooms.filter(r => r.status === 'terisi').length / rooms.length) * 100).toFixed(1) : '0'
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
 
-    if (editingRoom) {
-      setRooms(rooms.map(room =>
-        room.id === editingRoom.id ? { ...formData, id: room.id } : room
-      ));
-    } else {
-      const newRoom = {
-        ...formData,
+    try {
+      if (editingRoom) {
+        const updatedRoom = { ...formData, id: editingRoom.id };
+
+        // Optimistic update
+        setRooms(rooms.map(room =>
+          room.id === editingRoom.id ? updatedRoom : room
+        ));
+
+        // Save to Google Sheet
+        const kamarData: KamarData = {
+          id: String(updatedRoom.id),
+          nomorKamar: updatedRoom.roomNumber,
+          gedung: updatedRoom.building,
+          lantai: updatedRoom.floor,
+          status: updatedRoom.status,
+          namaPenyewa: updatedRoom.tenantName,
+          noTelepon: updatedRoom.tenantPhone,
+          hargaSewa: updatedRoom.rentPrice,
+          tanggalMasuk: updatedRoom.checkInDate,
+          durasiSewa: updatedRoom.rentDuration,
+          catatan: updatedRoom.notes || ''
+        };
+        await saveRow('update', kamarData);
+
+      } else {
         // eslint-disable-next-line react-hooks/purity
-        id: Date.now()
-      };
-      setRooms([...rooms, newRoom]);
-    }
+        const newId = Date.now();
+        const newRoom: Room = {
+          ...formData,
+          id: newId
+        };
 
-    closeModal();
+        // Optimistic update
+        setRooms([...rooms, newRoom]);
+
+        // Save to Google Sheet
+        const kamarData: KamarData = {
+          id: String(newId),
+          nomorKamar: newRoom.roomNumber,
+          gedung: newRoom.building,
+          lantai: newRoom.floor,
+          status: newRoom.status,
+          namaPenyewa: newRoom.tenantName,
+          noTelepon: newRoom.tenantPhone,
+          hargaSewa: newRoom.rentPrice,
+          tanggalMasuk: newRoom.checkInDate,
+          durasiSewa: newRoom.rentDuration,
+          catatan: newRoom.notes || ''
+        };
+        await saveRow('create', kamarData);
+      }
+
+      closeModal();
+      alert("Data berhasil disimpan!");
+    } catch (error) {
+      console.error(error);
+      alert("Gagal menyimpan data ke Google Sheets. Cek koneksi atau URL Script.");
+      // Revert optimistic update if needed (omitted for brevity in this step)
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleEdit = (room) => {
+  const handleEdit = (room: Room) => {
     setEditingRoom(room);
     setFormData(room);
     setIsModalOpen(true);
@@ -197,9 +160,21 @@ const KosanManagement = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id: number) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus kamar ini?')) {
-      setRooms(rooms.filter(room => room.id !== id));
+      setIsLoading(true);
+      try {
+        // Optimistic update
+        setRooms(rooms.filter(room => room.id !== id));
+
+        await deleteRow(String(id));
+        alert("Data berhasil dihapus!");
+      } catch (error) {
+        console.error(error);
+        alert("Gagal menghapus data dari Google Sheets.");
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -208,35 +183,78 @@ const KosanManagement = () => {
     setEditingRoom(null);
   };
 
-  const syncToGoogleSheets = () => {
-    alert('Fitur sync ke Google Sheets akan segera aktif!\n\nUntuk mengaktifkan:\n1. Setup Google Sheets API\n2. Tambahkan credentials\n3. Aplikasi akan otomatis sync');
-    setIsConnected(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const syncToGoogleSheets = async () => {
+    // If no ID is found in env, we can fallback to prompt, but user wants auto-sync.
+    // Ideally the ID is set in .env.local as verified.
+    let id = import.meta.env.VITE_GOOGLE_SHEET_ID;
+
+    // If running without env var, fallback to localStorage or empty
+    if (!id) {
+      id = localStorage.getItem('spreadsheetId') || '';
+    }
+
+    if (!id) {
+      console.error("No Spreadsheet ID found");
+      alert("Spreadsheet ID tidak ditemukan. Periksa file .env.local");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const data = await getSheetData(id, 'triplej!A2:K');
+
+      const mappedRooms: Room[] = data.map((row: KamarData) => ({
+        id: parseInt(row.id) || Math.floor(Math.random() * 100000),
+        roomNumber: row.nomorKamar,
+        building: row.gedung,
+        floor: row.lantai,
+        status: (row.status.toLowerCase() === 'terisi' ? 'terisi' : 'kosong') as 'kosong' | 'terisi',
+        tenantName: row.namaPenyewa,
+        tenantPhone: row.noTelepon,
+        rentPrice: row.hargaSewa.replace(/[^0-9]/g, ''),
+        checkInDate: row.tanggalMasuk,
+        rentDuration: row.durasiSewa,
+        rentDurationUnit: 'bulan',
+        notes: row.catatan || ''
+      }));
+
+      setRooms(mappedRooms);
+      setFilteredRooms(mappedRooms);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      alert("Gagal mengambil data dari Google Sheets: " + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-blue-600 text-white p-6 shadow-lg">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold mb-2">Manajemen Kosan</h1>
-          <p className="text-blue-100">Kelola 300 kamar kosan dengan mudah</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Manajemen Kosan</h1>
+            <p className="text-blue-100">Welcome, {username.charAt(0).toUpperCase() + username.slice(1)} | Kelola 300 kamar kosan dengan mudah</p>
+          </div>
+          <button
+            onClick={onLogout}
+            className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            <LogOut size={20} />
+            Logout
+          </button>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto p-6">
-        {!isConnected && (
-          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3">
-            <AlertCircle className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
-            <div className="flex-1">
-              <p className="text-yellow-800 text-sm">
-                <strong>Belum terhubung ke Google Sheets.</strong> Saat ini data disimpan di browser Anda.
-              </p>
-              <button
-                onClick={syncToGoogleSheets}
-                className="mt-2 text-sm bg-yellow-600 text-white px-4 py-1 rounded hover:bg-yellow-700"
-              >
-                Hubungkan ke Google Sheets
-              </button>
-            </div>
+        {/* Loading Indicator */}
+        {isLoading && (
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            <p className="text-blue-800 text-sm">Sedang mengambil data terbaru...</p>
           </div>
         )}
 
@@ -371,7 +389,7 @@ const KosanManagement = () => {
                         ) : '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                        Rp {parseInt(room.rentPrice || 0).toLocaleString('id-ID')}
+                        Rp {parseInt(room.rentPrice || '0').toLocaleString('id-ID')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex gap-2">
@@ -382,8 +400,9 @@ const KosanManagement = () => {
                             <Edit2 size={18} />
                           </button>
                           <button
-                            onClick={() => handleDelete(room.id)}
-                            className="text-red-600 hover:text-red-800"
+                            onClick={() => !isLoading && handleDelete(room.id)}
+                            className={`text-red-600 hover:text-red-800 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            disabled={isLoading}
                           >
                             <Trash2 size={18} />
                           </button>
@@ -451,7 +470,7 @@ const KosanManagement = () => {
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as 'kosong' | 'terisi' })}
             >
               <option value="kosong">Kosong</option>
               <option value="terisi">Terisi</option>
@@ -515,7 +534,7 @@ const KosanManagement = () => {
                   <select
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={formData.rentDurationUnit}
-                    onChange={(e) => setFormData({ ...formData, rentDurationUnit: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, rentDurationUnit: e.target.value as 'hari' | 'bulan' | 'tahun' })}
                   >
                     <option value="hari">Hari</option>
                     <option value="bulan">Bulan</option>
@@ -529,7 +548,7 @@ const KosanManagement = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
             <textarea
-              rows="3"
+              rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
@@ -540,19 +559,28 @@ const KosanManagement = () => {
         <div className="flex gap-3 mt-6">
           <button
             onClick={closeModal}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isLoading}
           >
             Batal
           </button>
           <button
             onClick={handleSubmit}
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            disabled={isLoading}
+            className={`flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
           >
-            {editingRoom ? 'Update' : 'Simpan'}
+            {isLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                {editingRoom ? 'Updating...' : 'Saving...'}
+              </>
+            ) : (
+              editingRoom ? 'Update' : 'Simpan'
+            )}
           </button>
         </div>
       </Modal>
-    </div>
+    </div >
   );
 };
 

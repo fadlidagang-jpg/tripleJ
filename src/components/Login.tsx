@@ -12,10 +12,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (
-            (username === 'admin' && password === 'admin123') ||
             (username === 'jack' && password === 'TripleJ123') ||
             (username === 'john' && password === 'TripleJ123') ||
-            (username === 'vivi' && password === 'TripleJ123')
+            (username === 'vivi' && password === 'TripleJ123') ||
+            (username === 'triplej' && password === 'TripleJ123')
         ) {
             onLogin(username);
             setError('');

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import KosanManagement from './components/KosanManagement'
+import KosanManagement from './pages/KosanManagement'
 import Login from './components/Login'
 
 function App() {
