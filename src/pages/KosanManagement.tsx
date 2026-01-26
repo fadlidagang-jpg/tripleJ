@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Edit2, Trash2, Home, Users, DollarSign, LogOut } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Home, Users, DollarSign, LogOut, FileText } from 'lucide-react';
 import Modal from '../components/Modal';
 import type { Room, RoomFormData, Stats } from '../types';
 import { calculateDuration, calculateRemainingTime } from '../utils';
@@ -17,6 +17,8 @@ const KosanManagement: React.FC<KosanManagementProps> = ({ onLogout, username })
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+  const [invoiceRoom, setInvoiceRoom] = useState<Room | null>(null);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState<boolean>(false);
 
 
   const [formData, setFormData] = useState<RoomFormData>({
@@ -181,6 +183,16 @@ const KosanManagement: React.FC<KosanManagementProps> = ({ onLogout, username })
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingRoom(null);
+  };
+
+  const handleShowInvoice = (room: Room) => {
+    setInvoiceRoom(room);
+    setIsInvoiceModalOpen(true);
+  };
+
+  const closeInvoiceModal = () => {
+    setIsInvoiceModalOpen(false);
+    setInvoiceRoom(null);
   };
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -394,6 +406,13 @@ const KosanManagement: React.FC<KosanManagementProps> = ({ onLogout, username })
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex gap-2">
                           <button
+                            onClick={() => handleShowInvoice(room)}
+                            className="text-green-600 hover:text-green-800"
+                            title="Lihat Invoice"
+                          >
+                            <FileText size={18} />
+                          </button>
+                          <button
                             onClick={() => handleEdit(room)}
                             className="text-blue-600 hover:text-blue-800"
                           >
@@ -582,6 +601,89 @@ const KosanManagement: React.FC<KosanManagementProps> = ({ onLogout, username })
             ) : (
               editingRoom ? 'Update' : 'Simpan'
             )}
+          </button>
+        </div>
+      </Modal>
+
+      {/* Invoice Modal */}
+      <Modal
+        isOpen={isInvoiceModalOpen}
+        onClose={closeInvoiceModal}
+        title="Invoice Pembayaran Sewa"
+      >
+        {invoiceRoom && (
+          <div id="invoice-content" className="space-y-6">
+            {/* Header */}
+            <div className="text-center border-b-2 border-gray-300 pb-4">
+              <h2 className="text-2xl font-bold text-gray-800">TRIPLE J KOSAN</h2>
+              <p className="text-sm text-gray-600 mt-1">Invoice Pembayaran Sewa Kamar</p>
+            </div>
+
+            {/* Invoice Details */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-600">Nomor Kamar</p>
+                <p className="font-semibold text-gray-800">{invoiceRoom.roomNumber}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Gedung / Lantai</p>
+                <p className="font-semibold text-gray-800">{invoiceRoom.building} / {invoiceRoom.floor}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Nama Penyewa</p>
+                <p className="font-semibold text-gray-800">{invoiceRoom.tenantName || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">No. Telepon</p>
+                <p className="font-semibold text-gray-800">{invoiceRoom.tenantPhone || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Tanggal Masuk</p>
+                <p className="font-semibold text-gray-800">{invoiceRoom.checkInDate || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Durasi Sewa</p>
+                <p className="font-semibold text-gray-800">{invoiceRoom.rentDuration} {invoiceRoom.rentDurationUnit}</p>
+              </div>
+            </div>
+
+            {/* Amount */}
+            <div className="border-t-2 border-gray-300 pt-4">
+              <div className="flex justify-between items-center bg-blue-50 p-4 rounded-lg">
+                <span className="text-lg font-semibold text-gray-700">Total Pembayaran:</span>
+                <span className="text-2xl font-bold text-blue-600">
+                  Rp {parseInt(invoiceRoom.rentPrice || '0').toLocaleString('de-DE')}
+                </span>
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div className="border-t border-gray-200 pt-4">
+              <p className="text-sm text-gray-600">Catatan:</p>
+              <p className="text-gray-800 mt-1">{invoiceRoom.notes || '-'}</p>
+            </div>
+
+            {/* Footer */}
+            <div className="text-center text-sm text-gray-500 border-t border-gray-200 pt-4">
+              <p>Terima kasih atas pembayaran Anda</p>
+              <p className="mt-1">Tanggal cetak: {new Date().toLocaleDateString('id-ID')}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={closeInvoiceModal}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            Tutup
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+          >
+            <FileText size={18} />
+            Cetak Invoice
           </button>
         </div>
       </Modal>
