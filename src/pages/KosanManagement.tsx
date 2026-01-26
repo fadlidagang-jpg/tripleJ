@@ -389,7 +389,7 @@ const KosanManagement: React.FC<KosanManagementProps> = ({ onLogout, username })
                         ) : '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                        Rp {parseInt(room.rentPrice || '0').toLocaleString('id-ID')}
+                        Rp {parseInt(room.rentPrice || '0').toLocaleString('de-DE')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex gap-2">
@@ -480,11 +480,16 @@ const KosanManagement: React.FC<KosanManagementProps> = ({ onLogout, username })
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Harga Sewa (Rp) *</label>
             <input
-              type="number"
+              type="text"
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={formData.rentPrice}
-              onChange={(e) => setFormData({ ...formData, rentPrice: e.target.value })}
+              value={formData.rentPrice ? parseInt(formData.rentPrice).toLocaleString('de-DE') : ''}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\./g, ''); // Remove dots
+                if (value === '' || /^\d+$/.test(value)) { // Only allow numbers
+                  setFormData({ ...formData, rentPrice: value });
+                }
+              }}
             />
           </div>
 

@@ -8,6 +8,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -47,13 +48,25 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                             Password
                         </label>
                         <input
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             id="password"
                             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Enter password"
                         />
+                        <div className="flex items-center mt-2">
+                            <input
+                                type="checkbox"
+                                id="showPassword"
+                                checked={showPassword}
+                                onChange={(e) => setShowPassword(e.target.checked)}
+                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <label htmlFor="showPassword" className="ml-2 text-sm text-gray-700">
+                                Show password
+                            </label>
+                        </div>
                     </div>
                     {error && <p className="text-sm text-red-500">{error}</p>}
                     <button
